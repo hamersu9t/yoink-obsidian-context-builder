@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "context-builder",
+	"name": "Context builder",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
+	"description": "Collects linked notes into a single downloadable context to feed into an LLM",
 	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
+	"authorUrl": "https://cwrichardkim.com",
 	"fundingUrl": "https://obsidian.md/pricing",
 	"isDesktopOnly": false
 }
