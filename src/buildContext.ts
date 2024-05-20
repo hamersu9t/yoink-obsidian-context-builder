@@ -7,39 +7,40 @@ interface NoteRelevance {
   minDistance: number;
 }
 
-function formatDateLocale(timestampInSeconds: number): string {
-  const date = new Date(timestampInSeconds * 1000);
-  
-  // Using toLocaleDateString to format the date
-  return date.toLocaleDateString('en-CA', { // Canadian English uses the YYYY-MM-DD format, similar to ISO
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-  });
+function formatDateLocale(unixTimestamp: number): string {
+  const date = new Date(unixTimestamp); // Convert seconds to milliseconds
+  const today = new Date();
+
+  // Calculate the difference in days
+  const differenceInTime = today.getTime() - date.getTime();
+  const differenceInDays = Math.floor(differenceInTime / (1000 * 3600 * 24));
+
+  // Return the difference as a string
+  return `${differenceInDays} days ago`;
 }
 
 function createContextNote(sortedNotes: [string, NoteRelevance][]) {
   const [primaryNote, ...restNotes] = sortedNotes;
   
-  let noteContent = "This context is pulled from Obsidian notes. It represents the network of linked notes based on the Obsidian graph. " 
+  let noteContent = "This context is pulled from my Obsidian notes. It represents my network of linked notes based on the Obsidian graph. " 
     + "The context is sorted by most relevant to least relevant based on the proximity to the main note, the number of times it was linked, "
     + "and the date it was last updated. Links within a note link to other notes using the [[note title]] syntax. Here is the primary note, "
-    + "please treat it as the most relevant for the conversation that will follow: \n"
+    + "please treat it as the most relevant for the conversation that will follow: \n\n"
     + "START CONTEXT FOR CONVERSATION\n"
     + "PRIMARY NOTE HAS PATH: " + primaryNote[0] + "\n"
     + "METADATA: this is the main note, number of times linked: " + primaryNote[1].count + ", date updated: " 
     + formatDateLocale(primaryNote[1].dateUpdated) + "\n\n"
+    + "PRIMARY NOTE CONTENT:\n" + primaryNote[1].content + "\n\n";
   for (const note of restNotes) {
-    noteContent += "NEW RELEVANT NOTE HAS PATH: " + note[0] + "\n";
-    noteContent += "METADATA: distance from main note: " 
-      + note[1].minDistance + ", number of times linked: " 
-      + note[1].count + ", date updated: " 
-      + formatDateLocale(note[1].dateUpdated) + "\n";
-    noteContent += "NOTE CONTENT: " + note[1].content + "\n\n";
+    noteContent += "--------------------------- LINKED NOTE: ---------------------------\n\n"
+      + "PATH: " + note[0] + "\n"
+      + "METADATA: distance from main note: " + note[1].minDistance + ", number of times linked: " 
+      + note[1].count + ", date updated: " + formatDateLocale(note[1].dateUpdated) + "\n"
+      + "NOTE CONTENT:\n" + note[1].content + "\n\n"
   }
   noteContent += "END CONTEXT FOR CONVERSATION\n"
   noteContent += "Please use the above context for the following conversation. Please be reminded that the context is sorted from most "
-    + "relevant to least relevant.\n\nCONVERSATION STARTS:\n"
+    + "relevant to least relevant."
   return noteContent
 }
 
