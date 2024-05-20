@@ -1,34 +1,119 @@
-import { App, Editor, LinkCache, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, LinkCache, MarkdownView, Modal, TFile } from 'obsidian';
+
+interface NoteRelevance {
+  content: string;
+  count: number;
+  dateUpdated: number;
+  minDistance: number;
+}
+
+function formatDateLocale(timestampInSeconds: number): string {
+  const date = new Date(timestampInSeconds * 1000);
+  
+  // Using toLocaleDateString to format the date
+  return date.toLocaleDateString('en-CA', { // Canadian English uses the YYYY-MM-DD format, similar to ISO
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+  });
+}
+
+function createContextNote(sortedNotes: [string, NoteRelevance][]) {
+  const [primaryNote, ...restNotes] = sortedNotes;
+  
+  let noteContent = "This context is pulled from Obsidian notes. It represents the network of linked notes based on the Obsidian graph. " 
+    + "The context is sorted by most relevant to least relevant based on the proximity to the main note, the number of times it was linked, "
+    + "and the date it was last updated. Links within a note link to other notes using the [[note title]] syntax. Here is the primary note, "
+    + "please treat it as the most relevant for the conversation that will follow: \n"
+    + "START CONTEXT FOR CONVERSATION\n"
+    + "PRIMARY NOTE HAS PATH: " + primaryNote[0] + "\n"
+    + "METADATA: this is the main note, number of times linked: " + primaryNote[1].count + ", date updated: " 
+    + formatDateLocale(primaryNote[1].dateUpdated) + "\n\n"
+  for (const note of restNotes) {
+    noteContent += "NEW RELEVANT NOTE HAS PATH: " + note[0] + "\n";
+    noteContent += "METADATA: distance from main note: " 
+      + note[1].minDistance + ", number of times linked: " 
+      + note[1].count + ", date updated: " 
+      + formatDateLocale(note[1].dateUpdated) + "\n";
+    noteContent += "NOTE CONTENT: " + note[1].content + "\n\n";
+  }
+  noteContent += "END CONTEXT FOR CONVERSATION\n"
+  noteContent += "Please use the above context for the following conversation. Please be reminded that the context is sorted from most "
+    + "relevant to least relevant.\n\nCONVERSATION STARTS:\n"
+  return noteContent
+}
+
+/**
+ * Sort the NoteRelevance objects first by minDistance, then count, then dateUpdated
+ */
+function sortNoteRelevance(linkMap: { [key: string]: NoteRelevance }) {
+  const entries = Object.entries(linkMap);
+  if (entries.length === 0) {
+    return [];
+  }
+
+  return entries.sort((a, b) => {
+    if (a[1].minDistance === b[1].minDistance) {
+      if (a[1].count === b[1].count) {
+        return a[1].dateUpdated - b[1].dateUpdated;
+      }
+      return b[1].count - a[1].count;
+    }
+    return a[1].minDistance - b[1].minDistance;
+  });
+}
 
 class SampleModal extends Modal {
 	constructor(app: App) {
 		super(app);
 	}
 
-	onOpen() {
-		const { app, contentEl } = this;
-    const { metadataCache, workspace } = app;
+  async countLinks(linkTitle: string, linkMap: { [key: string]: NoteRelevance }, depth: number, maxDepth: number) {
+    const { metadataCache, vault } = this.app;
+    if (depth > maxDepth) return;
+
+    if (linkMap[linkTitle]) {
+      linkMap[linkTitle].count += 1;
+      linkMap[linkTitle].minDistance = Math.min(linkMap[linkTitle].minDistance, depth);
+    } else {
+      const file = vault.getAbstractFileByPath(linkTitle);
+      if (file instanceof TFile) {
+        const content = await vault.read(file);
+        linkMap[linkTitle] = { content, count: 1, minDistance: depth, dateUpdated: file.stat.mtime };
+        const backlinks = metadataCache.getBacklinksForFile(file).data as Record<string, LinkCache[]>;
+        for (const link in backlinks) {
+          await this.countLinks(link, linkMap, depth + 1, maxDepth);
+        }
+        for (const link of metadataCache.getFileCache(file)?.links || []) {
+          const linkMatch = metadataCache.getFirstLinkpathDest(link.link, "");
+          if (linkMatch) {
+            await this.countLinks(linkMatch?.path, linkMap, depth + 1, maxDepth);
+          }
+        }
+      } else {
+          console.error("File not found or not a markdown/text file", linkTitle);
+      }
+    }
+  }
+
+	async onOpen() {
+    const { workspace } = this.app;
     const view = workspace.getActiveViewOfType(MarkdownView)
-    const data = view?.getViewData();
+    const linkMap: { [key: string]: NoteRelevance } = {};
+    const maxDepth = 2;
+
     
     if (view?.file) {
-      const backlinks = metadataCache.getBacklinksForFile(view.file).data as Record<string, LinkCache[]>;
-      contentEl.setText(JSON.stringify(backlinks))
-      for (const link in Object.keys(backlinks)) {
-        console.log(link)
-        console.log(typeof link)
-        console.log(backlinks.data[link]);
-        console.log(typeof backlinks.data[link]);
-        // for (const linkCache of backlinks.data[link]) {
-        //   console.log(linkCache)
-        // }
-      }
+      await this.countLinks(view.file.path, linkMap, 0, maxDepth);
     } 
 
+    console.log(linkMap)
     // if (view) {
-    //   contentEl.setText(data);
+    //   this.contentEl.setText(data);
     // }
+    console.log(createContextNote(sortNoteRelevance(linkMap)));
 	}
+
 
 	onClose() {
 		const {contentEl} = this;
