@@ -7,6 +7,10 @@ interface NoteRelevance {
   minDistance: number;
 }
 
+function replaceEmbedLinksWithContent() {
+  // TODO
+}
+
 function formatDateLocale(unixTimestamp: number): string {
   const date = new Date(unixTimestamp); // Convert seconds to milliseconds
   const today = new Date();
