@@ -17,41 +17,42 @@ class ContextBuilder {
       }
     }
 
-    console.log('file not found', files, fileName);
+    console.error('file not found', files, fileName);
     return null;
   }
 
-  async getBlockContent(embeddedBlockReference: string) {
+  async getEmbeddedBlockContent(embeddedBlockReference: string) {
     if (isUnsupportedEmbedType(embeddedBlockReference)) {
       console.log('TODO: embeddedBlockReference unsupported type', embeddedBlockReference);
       return embeddedBlockReference;
     }
 
+    const { metadataCache, vault } = this.app;
+
     // Remove the `![[` and `]]` parts
     const strippedLink = embeddedBlockReference.slice(3, -2);
     const [noteName, blockId] = strippedLink.split('#^');
 
-    const { vault } = this.app;
-    const file = await this.findFileByName(noteName);
-
-    if (!file || !(file instanceof TFile)) {
-      console.log('embeddedBlockReference file not found', noteName);
+    const targetFile = await this.findFileByName(noteName);
+    if (!targetFile || !(targetFile instanceof TFile)) {
+      console.error('file for embedded block not found', noteName);
       return embeddedBlockReference;
     }
 
-    const noteContent = await vault.read(file);
-
-    if (!noteContent) {
-      console.log('embeddedBlockReference content not found', noteName);
+    const targetContent = await vault.read(targetFile);
+    if (!targetContent) {
+      console.error('content for embedded block not found', noteName);
       return embeddedBlockReference;
     }
 
-    const lines = noteContent.split('\n');
-    for (const line of lines) {
-      if (line.includes(`^${blockId}`)) return line;
+    const blocks = metadataCache.getFileCache(targetFile)?.blocks;
+    if (!blocks || !blocks[blockId]) {
+      console.error('block reference not found', embeddedBlockReference);
+      return embeddedBlockReference;
     }
 
-    return embeddedBlockReference;
+    const { position } = blocks[blockId];
+    return targetContent.split('\n').slice(position.start.line, position.end.line + 1).join('\n');
   }
 
   async replaceEmbeddedBlocksWithContent(note: [string, NoteRelevance]) {
@@ -61,7 +62,7 @@ class ContextBuilder {
     if (!embeddedBlockReferences) return note;
 
     for (const reference of embeddedBlockReferences) {
-      note[1].content = formatEmbedReplacements(note[1].content, reference, await this.getBlockContent(reference));
+      note[1].content = formatEmbedReplacements(note[1].content, reference, await this.getEmbeddedBlockContent(reference));
     }
 
     return  note;
@@ -105,6 +106,7 @@ class ContextBuilder {
 
   async createContextNote(sortedNotes: [string, NoteRelevance][]) {
     const [primaryNote, ...restNotes] = sortedNotes;
+    const primaryWithEmbedsNote = await this.replaceEmbeddedBlocksWithContent(primaryNote);
     
     let noteContent = 'This context is pulled from my Obsidian notes. It represents my network of linked notes based on the Obsidian graph. ' 
       + 'The context is sorted by most relevant to least relevant based on the proximity to the main note, the number of times it was linked, '
@@ -114,7 +116,7 @@ class ContextBuilder {
       + 'PRIMARY NOTE HAS PATH: ' + primaryNote[0] + '\n'
       + 'METADATA: this is the main note, number of times linked: ' + primaryNote[1].count + ', date updated: ' 
       + formatDateLocale(primaryNote[1].dateUpdated) + '\n\n'
-      + 'PRIMARY NOTE CONTENT:\n' + primaryNote[1].content + '\n\n';
+      + 'PRIMARY NOTE CONTENT:\n' + primaryWithEmbedsNote[1].content + '\n\n';
 
     for (const note of restNotes) {
       const expandedNote = await this.replaceEmbeddedBlocksWithContent(note);
@@ -134,11 +136,9 @@ class ContextBuilder {
    * 1. Get current note
    * 2. Get all linked notes in
    * 3. Get all linked notes out
-   * 4. Build a queue of linked notes and a dictionary of linked notes -> note content
-   * 5. Build a dictionary of note title -> number of links
-   * 6. Go through the queue, recursively adding to the content dictionary and adding to the queue with all linked notes,
-   *  checking the dictionary to see if we've already added the note
-   * 7. Build a giant note out of the content dictionary using the number of links to determine the order
+   * 4. Recursively get all linked notes in and out of the linked notes
+   * 5. Count the distance from the main note and the number of times each note was referenced
+   * 6. Build a giant note out of the content dictionary using the number of links to determine the order
    */
   async build() {
     const { workspace } = this.app;
@@ -156,7 +156,7 @@ class ContextBuilder {
     //   this.contentEl.setText(data);
     // }
     console.log(await this.createContextNote(sortNoteRelevance(linkMap)));
-    new Notice('Yoinked!');
+    new Notice(`Yoinked! (depth: ${maxDepth})`);
   }
 }
 
