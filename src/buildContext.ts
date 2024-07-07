@@ -1,10 +1,12 @@
-import { App, LinkCache, MarkdownView, Modal, TFile } from 'obsidian';
+import { App, LinkCache, MarkdownView, Notice, TFile } from 'obsidian';
 import { isUnsupportedEmbedType, formatDateLocale, formatEmbedReplacements, sortNoteRelevance } from './helpers';
 import { NoteRelevance } from './types';
 
-class SampleModal extends Modal {
+class ContextBuilder {
+  app: App;
+
 	constructor(app: App) {
-		super(app);
+    this.app = app;
 	}
 
   async findFileByName(fileName: string) {
@@ -65,30 +67,38 @@ class SampleModal extends Modal {
     return  note
   }
 
-  async countLinks(linkTitle: string, linkMap: { [key: string]: NoteRelevance }, depth: number, maxDepth: number) {
+  /**
+   * Up to the specified depth, builds a map of linked notes to their content, number of times linked, and distance from the main note
+   */
+  async buildLinkMap(linkTitle: string, linkMap: { [key: string]: NoteRelevance }, curDepth: number, maxDepth: number) {
     const { metadataCache, vault } = this.app;
-    if (depth > maxDepth) return;
+    if (curDepth > maxDepth) return;
 
     if (linkMap[linkTitle]) {
       linkMap[linkTitle].count += 1;
-      linkMap[linkTitle].minDistance = Math.min(linkMap[linkTitle].minDistance, depth);
+      linkMap[linkTitle].minDistance = Math.min(linkMap[linkTitle].minDistance, curDepth);
     } else {
       const file = vault.getAbstractFileByPath(linkTitle);
-      if (file instanceof TFile) {
-        const content = await vault.read(file);
-        linkMap[linkTitle] = { content, count: 1, minDistance: depth, dateUpdated: file.stat.mtime };
-        const backlinks = metadataCache.getBacklinksForFile(file).data as Record<string, LinkCache[]>;
-        for (const link in backlinks) {
-          await this.countLinks(link, linkMap, depth + 1, maxDepth);
+
+      if (!(file instanceof TFile)) {
+        console.error("File not found or not a markdown/text file", linkTitle);
+        return;
+      }
+
+      const content = await vault.read(file);
+      linkMap[linkTitle] = { content, count: 1, minDistance: curDepth, dateUpdated: file.stat.mtime };
+      const backlinks = metadataCache.getBacklinksForFile(file).data as Record<string, LinkCache[]>;
+
+      // Recursively build build the link map using the backlinks of the current note
+      for (const backlink in backlinks) {
+        await this.buildLinkMap(backlink, linkMap, curDepth + 1, maxDepth);
+      }
+      // Recursively build the link map using the links in the current note
+      for (const forwardLink of metadataCache.getFileCache(file)?.links || []) {
+        const forwardLinkMatch = metadataCache.getFirstLinkpathDest(forwardLink.link, "");
+        if (forwardLinkMatch) {
+          await this.buildLinkMap(forwardLinkMatch?.path, linkMap, curDepth + 1, maxDepth);
         }
-        for (const link of metadataCache.getFileCache(file)?.links || []) {
-          const linkMatch = metadataCache.getFirstLinkpathDest(link.link, "");
-          if (linkMatch) {
-            await this.countLinks(linkMatch?.path, linkMap, depth + 1, maxDepth);
-          }
-        }
-      } else {
-          console.error("File not found or not a markdown/text file", linkTitle);
       }
     }
   }
@@ -120,34 +130,6 @@ class SampleModal extends Modal {
     return noteContent
   }
 
-	async onOpen() {
-    const { workspace } = this.app;
-    const view = workspace.getActiveViewOfType(MarkdownView)
-    const linkMap: { [key: string]: NoteRelevance } = {};
-    const maxDepth = 2;
-
-    
-    if (view?.file) {
-      await this.countLinks(view.file.path, linkMap, 0, maxDepth);
-    } 
-
-    console.log(linkMap)
-    // if (view) {
-    //   this.contentEl.setText(data);
-    // }
-    console.log(await this.createContextNote(sortNoteRelevance(linkMap)));
-	}
-
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-export function buildContext() {
-  new SampleModal(this.app).open();
-
   /**
    * 1. Get current note
    * 2. Get all linked notes in
@@ -158,5 +140,27 @@ export function buildContext() {
    *  checking the dictionary to see if we've already added the note
    * 7. Build a giant note out of the content dictionary using the number of links to determine the order
    */
+	async build() {
+    const { workspace } = this.app;
+    const view = workspace.getActiveViewOfType(MarkdownView)
+    const linkMap: { [key: string]: NoteRelevance } = {};
+    const maxDepth = 2; // <- TODO: make this configurable
+
+    
+    if (view?.file) {
+      await this.buildLinkMap(view.file.path, linkMap, 0, maxDepth);
+    } 
+
+    console.log(linkMap)
+    // if (view) {
+    //   this.contentEl.setText(data);
+    // }
+    console.log(await this.createContextNote(sortNoteRelevance(linkMap)));
+    new Notice('Yoinked!');
+	}
+}
+
+export function buildContext() {
+  new ContextBuilder(this.app).build();
   return
 }
