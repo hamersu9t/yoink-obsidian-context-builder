@@ -3,16 +3,16 @@ import { buildContext } from 'src/buildContext';
 
 // Remember to rename these classes and interfaces!
 
-interface MyPluginSettings {
-  mySetting: string;
+export interface YoinkPluginSettings {
+  depth: number;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-  mySetting: 'default',
+const DEFAULT_SETTINGS: YoinkPluginSettings = {
+  depth: 2,
 };
 
 export default class MyPlugin extends Plugin {
-  settings: MyPluginSettings;
+  settings: YoinkPluginSettings;
 
   async onload() {
     await this.loadSettings();
@@ -58,7 +58,7 @@ export default class MyPlugin extends Plugin {
           // If checking is true, we're simply "checking" if the command can be run.
           // If checking is false, then we want to actually perform the operation.
           if (!checking) {
-            buildContext();
+            buildContext(this.settings);
           }
 
           // This command will only show up in Command Palette when the check function returns true
@@ -107,13 +107,13 @@ class SampleSettingTab extends PluginSettingTab {
     containerEl.empty();
 
     new Setting(containerEl)
-      .setName('Setting #1')
-      .setDesc('It\'s a secret')
+      .setName('Depth')
+      .setDesc('Depth of links that are traversed')
       .addText(text => text
-        .setPlaceholder('Enter your secret')
-        .setValue(this.plugin.settings.mySetting)
+        .setPlaceholder(String(this.plugin.settings.depth))
+        .setValue(String(this.plugin.settings.depth))
         .onChange(async (value) => {
-          this.plugin.settings.mySetting = value;
+          this.plugin.settings.depth = Number(value.replace(/\D/g, ''));
           await this.plugin.saveSettings();
         }));
   }

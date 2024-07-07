@@ -1,12 +1,16 @@
 import { App, LinkCache, MarkdownView, Notice, TFile } from 'obsidian';
 import { isUnsupportedEmbedType, formatDateLocale, formatEmbedReplacements, sortNoteRelevance } from './helpers';
 import { NoteRelevance } from './types';
+import { YoinkPluginSettings } from 'main';
 
 class ContextBuilder {
   app: App;
 
-  constructor(app: App) {
+  settings: YoinkPluginSettings;
+
+  constructor(app: App, settings: YoinkPluginSettings) {
     this.app = app;
+    this.settings = settings;
   }
 
   async findFileByName(fileName: string) {
@@ -144,7 +148,7 @@ class ContextBuilder {
     const { workspace } = this.app;
     const view = workspace.getActiveViewOfType(MarkdownView);
     const linkMap: { [key: string]: NoteRelevance } = {};
-    const maxDepth = 2; // <- TODO: make this configurable
+    const maxDepth = this.settings.depth; // <- TODO: make this configurable
 
     
     if (view?.file) {
@@ -160,7 +164,7 @@ class ContextBuilder {
   }
 }
 
-export function buildContext() {
-  new ContextBuilder(this.app).build();
+export function buildContext(settings: YoinkPluginSettings) {
+  new ContextBuilder(this.app, settings).build();
   return;
 }
