@@ -1,4 +1,6 @@
 import { App, LinkCache, MarkdownView, Notice, TFile } from 'obsidian';
+import Handlebars from 'handlebars';
+import templateString from '../templates/default';
 import { isUnsupportedEmbedType, formatDateLocale, formatEmbedReplacements, sortNoteRelevance } from './helpers';
 import { NoteRelevance } from './types';
 import { YoinkPluginSettings } from 'main';
@@ -109,8 +111,24 @@ class ContextBuilder {
   }
 
   async createContextNote(sortedNotes: [string, NoteRelevance][]) {
+    const template = Handlebars.compile(templateString);
+
     const [primaryNote, ...restNotes] = sortedNotes;
     const primaryWithEmbedsNote = await this.replaceEmbeddedBlocksWithContent(primaryNote);
+
+    return template({
+      primaryNote: {
+        path: primaryNote[0],
+        ...primaryNote[1],
+        content: primaryWithEmbedsNote[1].content,
+        dateUpdated: formatDateLocale(primaryNote[1].dateUpdated),
+      },
+      linkedNotes: restNotes.map((note) => ({
+        path: note[0],
+        ...note[1],
+        dateUpdated: formatDateLocale(note[1].dateUpdated),
+      })),
+    });
     
     let noteContent = 'This context is pulled from my Obsidian notes. It represents my network of linked notes based on the Obsidian graph. ' 
       + 'The context is sorted by most relevant to least relevant based on the proximity to the main note, the number of times it was linked, '
