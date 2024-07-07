@@ -5,9 +5,9 @@ import { NoteRelevance } from './types';
 class ContextBuilder {
   app: App;
 
-	constructor(app: App) {
+  constructor(app: App) {
     this.app = app;
-	}
+  }
 
   async findFileByName(fileName: string) {
     const files = this.app.vault.getFiles();
@@ -54,7 +54,7 @@ class ContextBuilder {
     return embeddedBlockReference;
   }
 
-   async replaceEmbeddedBlocksWithContent(note: [string, NoteRelevance]) {
+  async replaceEmbeddedBlocksWithContent(note: [string, NoteRelevance]) {
     const { content } = note[1];
     const embeddedBlockReferences = content.match(/!\[\[(.*?)\]\]/g);
   
@@ -64,7 +64,7 @@ class ContextBuilder {
       note[1].content = formatEmbedReplacements(note[1].content, reference, await this.getBlockContent(reference));
     }
 
-    return  note
+    return  note;
   }
 
   /**
@@ -81,7 +81,7 @@ class ContextBuilder {
       const file = vault.getAbstractFileByPath(linkTitle);
 
       if (!(file instanceof TFile)) {
-        console.error("File not found or not a markdown/text file", linkTitle);
+        console.error('File not found or not a markdown/text file', linkTitle);
         return;
       }
 
@@ -95,7 +95,7 @@ class ContextBuilder {
       }
       // Recursively build the link map using the links in the current note
       for (const forwardLink of metadataCache.getFileCache(file)?.links || []) {
-        const forwardLinkMatch = metadataCache.getFirstLinkpathDest(forwardLink.link, "");
+        const forwardLinkMatch = metadataCache.getFirstLinkpathDest(forwardLink.link, '');
         if (forwardLinkMatch) {
           await this.buildLinkMap(forwardLinkMatch?.path, linkMap, curDepth + 1, maxDepth);
         }
@@ -106,28 +106,28 @@ class ContextBuilder {
   async createContextNote(sortedNotes: [string, NoteRelevance][]) {
     const [primaryNote, ...restNotes] = sortedNotes;
     
-    let noteContent = "This context is pulled from my Obsidian notes. It represents my network of linked notes based on the Obsidian graph. " 
-      + "The context is sorted by most relevant to least relevant based on the proximity to the main note, the number of times it was linked, "
-      + "and the date it was last updated. Links within a note link to other notes using the [[note title]] syntax. Here is the primary note, "
-      + "please treat it as the most relevant for the conversation that will follow: \n\n"
-      + "START CONTEXT FOR CONVERSATION\n"
-      + "PRIMARY NOTE HAS PATH: " + primaryNote[0] + "\n"
-      + "METADATA: this is the main note, number of times linked: " + primaryNote[1].count + ", date updated: " 
-      + formatDateLocale(primaryNote[1].dateUpdated) + "\n\n"
-      + "PRIMARY NOTE CONTENT:\n" + primaryNote[1].content + "\n\n";
+    let noteContent = 'This context is pulled from my Obsidian notes. It represents my network of linked notes based on the Obsidian graph. ' 
+      + 'The context is sorted by most relevant to least relevant based on the proximity to the main note, the number of times it was linked, '
+      + 'and the date it was last updated. Links within a note link to other notes using the [[note title]] syntax. Here is the primary note, '
+      + 'please treat it as the most relevant for the conversation that will follow: \n\n'
+      + 'START CONTEXT FOR CONVERSATION\n'
+      + 'PRIMARY NOTE HAS PATH: ' + primaryNote[0] + '\n'
+      + 'METADATA: this is the main note, number of times linked: ' + primaryNote[1].count + ', date updated: ' 
+      + formatDateLocale(primaryNote[1].dateUpdated) + '\n\n'
+      + 'PRIMARY NOTE CONTENT:\n' + primaryNote[1].content + '\n\n';
 
     for (const note of restNotes) {
       const expandedNote = await this.replaceEmbeddedBlocksWithContent(note);
-      noteContent += "--------------------------- LINKED NOTE: ---------------------------\n\n"
-        + "PATH: " + expandedNote[0] + "\n"
-        + "METADATA: distance from main note: " + expandedNote[1].minDistance + ", number of times linked: " 
-        + expandedNote[1].count + ", date updated: " + formatDateLocale(expandedNote[1].dateUpdated) + "\n"
-        + "NOTE CONTENT:\n" + expandedNote[1].content + "\n\n"
+      noteContent += '--------------------------- LINKED NOTE: ---------------------------\n\n'
+        + 'PATH: ' + expandedNote[0] + '\n'
+        + 'METADATA: distance from main note: ' + expandedNote[1].minDistance + ', number of times linked: ' 
+        + expandedNote[1].count + ', date updated: ' + formatDateLocale(expandedNote[1].dateUpdated) + '\n'
+        + 'NOTE CONTENT:\n' + expandedNote[1].content + '\n\n';
     }
-    noteContent += "END CONTEXT FOR CONVERSATION\n"
-    noteContent += "Please use the above context for the following conversation. Please be reminded that the context is sorted from most "
-      + "relevant to least relevant."
-    return noteContent
+    noteContent += 'END CONTEXT FOR CONVERSATION\n';
+    noteContent += 'Please use the above context for the following conversation. Please be reminded that the context is sorted from most '
+      + 'relevant to least relevant.';
+    return noteContent;
   }
 
   /**
@@ -140,9 +140,9 @@ class ContextBuilder {
    *  checking the dictionary to see if we've already added the note
    * 7. Build a giant note out of the content dictionary using the number of links to determine the order
    */
-	async build() {
+  async build() {
     const { workspace } = this.app;
-    const view = workspace.getActiveViewOfType(MarkdownView)
+    const view = workspace.getActiveViewOfType(MarkdownView);
     const linkMap: { [key: string]: NoteRelevance } = {};
     const maxDepth = 2; // <- TODO: make this configurable
 
@@ -151,16 +151,16 @@ class ContextBuilder {
       await this.buildLinkMap(view.file.path, linkMap, 0, maxDepth);
     } 
 
-    console.log(linkMap)
+    console.log(linkMap);
     // if (view) {
     //   this.contentEl.setText(data);
     // }
     console.log(await this.createContextNote(sortNoteRelevance(linkMap)));
     new Notice('Yoinked!');
-	}
+  }
 }
 
 export function buildContext() {
   new ContextBuilder(this.app).build();
-  return
+  return;
 }

@@ -41,5 +41,5 @@ export function formatEmbedReplacements(content: string, reference: string, bloc
 
   const referenceName = reference.slice(3, -2);
   const matchToReplace = content.includes(`\n${reference}`) ? `\n${reference}` : reference;
-  return content.replace(matchToReplace, `\n> [!quote from ${referenceName}]\n> ${blockContent}`)
+  return content.replace(matchToReplace, `\n> [!quote from ${referenceName}]\n> ${blockContent}`);
 }
