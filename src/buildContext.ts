@@ -129,29 +129,6 @@ class ContextBuilder {
         dateUpdated: formatDateLocale(note[1].dateUpdated),
       })),
     });
-    
-    let noteContent = 'This context is pulled from my Obsidian notes. It represents my network of linked notes based on the Obsidian graph. ' 
-      + 'The context is sorted by most relevant to least relevant based on the proximity to the main note, the number of times it was linked, '
-      + 'and the date it was last updated. Links within a note link to other notes using the [[note title]] syntax. Here is the primary note, '
-      + 'please treat it as the most relevant for the conversation that will follow: \n\n'
-      + 'START CONTEXT FOR CONVERSATION\n'
-      + 'PRIMARY NOTE HAS PATH: ' + primaryNote[0] + '\n'
-      + 'METADATA: this is the main note, number of times linked: ' + primaryNote[1].count + ', date updated: ' 
-      + formatDateLocale(primaryNote[1].dateUpdated) + '\n\n'
-      + 'PRIMARY NOTE CONTENT:\n' + primaryWithEmbedsNote[1].content + '\n\n';
-
-    for (const note of restNotes) {
-      const expandedNote = await this.replaceEmbeddedBlocksWithContent(note);
-      noteContent += '--------------------------- LINKED NOTE: ---------------------------\n\n'
-        + 'PATH: ' + expandedNote[0] + '\n'
-        + 'METADATA: distance from main note: ' + expandedNote[1].minDistance + ', number of times linked: ' 
-        + expandedNote[1].count + ', date updated: ' + formatDateLocale(expandedNote[1].dateUpdated) + '\n'
-        + 'NOTE CONTENT:\n' + expandedNote[1].content + '\n\n';
-    }
-    noteContent += 'END CONTEXT FOR CONVERSATION\n';
-    noteContent += 'Please use the above context for the following conversation. Please be reminded that the context is sorted from most '
-      + 'relevant to least relevant.';
-    return noteContent;
   }
 
   /**
