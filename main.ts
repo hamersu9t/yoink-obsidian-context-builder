@@ -19,7 +19,7 @@ export default class MyPlugin extends Plugin {
 
 		// This creates an icon in the left ribbon.
 		// const ribbonIconEl = 
-		this.addRibbonIcon('dice', 'Context builder', (evt: MouseEvent) => {
+		this.addRibbonIcon('dice', 'Yoink', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
 			new Notice('This is a notice!');
 		});

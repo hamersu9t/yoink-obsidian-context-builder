@@ -1,6 +1,6 @@
 {
-	"id": "context-builder",
-	"name": "Context builder",
+	"id": "yoink-context-builder",
+	"name": "Yoink",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
 	"description": "Collects linked notes into a single downloadable context to feed into an LLM",
