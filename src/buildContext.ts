@@ -139,27 +139,24 @@ class ContextBuilder {
    * 5. Count the distance from the main note and the number of times each note was referenced
    * 6. Build a giant note out of the content dictionary using the number of links to determine the order
    */
-  async build() {
+  async build(): Promise<string> {
     const { workspace } = this.app;
     const view = workspace.getActiveViewOfType(MarkdownView);
     const linkMap: { [key: string]: NoteRelevance } = {};
-    const maxDepth = this.settings.depth; // <- TODO: make this configurable
+    const maxDepth = this.settings.depth;
 
-    
     if (view?.file) {
       await this.buildLinkMap(view.file.path, linkMap, 0, maxDepth);
-    } 
+    } else {
+      return 'No active Markdown view found.';
+    }
 
-    console.log(linkMap);
-    // if (view) {
-    //   this.contentEl.setText(data);
-    // }
-    console.log(await this.createContextNote(sortNoteRelevance(linkMap)));
-    new Notice(`Yoinked! (depth: ${maxDepth})`);
+    const contextNote = await this.createContextNote(sortNoteRelevance(linkMap));
+    return contextNote;
   }
 }
 
-export function buildContext(settings: YoinkPluginSettings) {
-  new ContextBuilder(this.app, settings).build();
-  return;
+export function buildContext(app: App, settings: YoinkPluginSettings): Promise<string> {
+  const builder = new ContextBuilder(app, settings);
+  return builder.build();
 }
