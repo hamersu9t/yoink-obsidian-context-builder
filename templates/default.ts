@@ -1,8 +1,5 @@
 export default `
-This context is pulled from my Obsidian notes. It represents my network of linked notes based on the Obsidian graph. 
-The context is sorted by most relevant to least relevant based on the proximity to the main note, the number of times it was referenced via a link, 
-and the date it was last updated. Links within a note link to other notes using the [[note title]] syntax. Here is the primary note, 
-please treat it as the most relevant for the conversation that will follow:
+This context is pulled from my Obsidian notes. It represents my network of linked notes based on the Obsidian graph. The context is sorted by most relevant to least relevant based on the proximity to the main note, the number of times it was referenced via a link, and the date it was last updated. Links within a note link to other notes are indicated with the [[note title]] syntax. Here is the primary note, please treat it as the most relevant for the conversation that will follow:
 
 CONTEXT START
 PRIMARY NOTE HAS PATH: {{{primaryNote.path}}}

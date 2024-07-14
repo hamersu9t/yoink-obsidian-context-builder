@@ -1,7 +1,6 @@
-import { App, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { buildContext } from 'src/buildContext';
-
-// Remember to rename these classes and interfaces!
+import YoinkResultModal from 'src/YoinkResultModal';
 
 export interface YoinkPluginSettings {
   depth: number;
@@ -10,22 +9,6 @@ export interface YoinkPluginSettings {
 const DEFAULT_SETTINGS: YoinkPluginSettings = {
   depth: 2,
 };
-
-class YoinkResultModal extends Modal {
-  constructor(app: App, private result: string) {
-    super(app);
-  }
-
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.innerHTML = this.result;
-  }
-
-  onClose() {
-    const { contentEl } = this;
-    contentEl.empty();
-  }
-}
 
 class YoinkSettingTab extends PluginSettingTab {
   plugin: YoinkPlugin;
