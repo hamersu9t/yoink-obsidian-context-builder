@@ -29,6 +29,7 @@ export class YoinkResultModal extends Modal {
             <h2>Yoink Result</h2>
             <div class="yoink-modal-subtitle">
               Flattened ${this.result.linkedNotesCount} other note${this.result.linkedNotesCount !== 1 ? 's' : ''} (words: ${this.result.wordCount} | depth: ${this.result.depth})
+              <br>(Adjust the template and link depth in settings)
             </div>
           </div>
           <div class="yoink-button-container">
@@ -138,7 +139,6 @@ export class YoinkResultModal extends Modal {
         justify-content: space-between;
         align-items: flex-end;
         margin-bottom: 20px;
-        margin-top: 10px;
       }
       .yoink-modal-header h2 {
         margin: 0;
