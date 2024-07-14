@@ -99,6 +99,7 @@ class ContextBuilder {
 
       const content = await vault.read(file);
       linkMap[linkTitle] = { content, count: 1, minDistance: curDepth, dateUpdated: file.stat.mtime };
+      // @ts-expect-error Property 'getBacklinksForFile' does not exist on type 'MetadataCache'.
       const backlinks = metadataCache.getBacklinksForFile(file).data as Record<string, LinkCache[]>;
 
       // Recursively build build the link map using the backlinks of the current note
