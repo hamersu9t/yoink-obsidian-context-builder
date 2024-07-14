@@ -1,9 +1,14 @@
-import { App, LinkCache, MarkdownView, Notice, TFile } from 'obsidian';
+import { App, LinkCache, MarkdownView, TFile } from 'obsidian';
 import Handlebars from 'handlebars';
 import templateString from '../templates/default';
 import { isUnsupportedEmbedType, formatDateLocale, formatEmbedReplacements, sortNoteRelevance } from './helpers';
 import { NoteRelevance } from './types';
 import { YoinkPluginSettings } from 'main';
+
+interface ContextResult {
+  content: string;
+  linkedNotesCount: number;
+}
 
 class ContextBuilder {
   app: App;
@@ -139,7 +144,7 @@ class ContextBuilder {
    * 5. Count the distance from the main note and the number of times each note was referenced
    * 6. Build a giant note out of the content dictionary using the number of links to determine the order
    */
-  async build(): Promise<string> {
+  async build(): Promise<ContextResult> {
     const { workspace } = this.app;
     const view = workspace.getActiveViewOfType(MarkdownView);
     const linkMap: { [key: string]: NoteRelevance } = {};
@@ -148,15 +153,18 @@ class ContextBuilder {
     if (view?.file) {
       await this.buildLinkMap(view.file.path, linkMap, 0, maxDepth);
     } else {
-      return 'No active Markdown view found.';
+      return { content: 'No active Markdown view found.', linkedNotesCount: 0 };
     }
 
     const contextNote = await this.createContextNote(sortNoteRelevance(linkMap));
-    return contextNote;
+    return {
+      content: contextNote,
+      linkedNotesCount: Object.keys(linkMap).length - 1, // Subtract 1 to exclude the current note
+    };
   }
 }
 
-export function buildContext(app: App, settings: YoinkPluginSettings): Promise<string> {
+export function buildContext(app: App, settings: YoinkPluginSettings): Promise<ContextResult> {
   const builder = new ContextBuilder(app, settings);
   return builder.build();
 }

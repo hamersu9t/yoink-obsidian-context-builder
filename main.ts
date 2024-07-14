@@ -1,6 +1,6 @@
 import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { buildContext } from 'src/buildContext';
-import YoinkResultModal from 'src/YoinkResultModal';
+import { YoinkResultModal, YoinkResult } from './src/YoinkResultModal';
 
 export interface YoinkPluginSettings {
   depth: number;
@@ -70,7 +70,14 @@ export default class YoinkPlugin extends Plugin {
     const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (markdownView) {
       try {
-        const result = await buildContext(this.app, this.settings);
+        const contextResult = await buildContext(this.app, this.settings);
+        const wordCount = contextResult.content.split(/\s+/).length;
+        const result: YoinkResult = {
+          content: contextResult.content,
+          wordCount: wordCount,
+          depth: this.settings.depth,
+          linkedNotesCount: contextResult.linkedNotesCount,
+        };
         new YoinkResultModal(this.app, result).open();
       } catch (error) {
         new Notice('Error executing Yoink: ' + error.message);
