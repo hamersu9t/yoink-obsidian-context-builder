@@ -1,10 +1,12 @@
 import { App, Modal, Notice, setIcon } from 'obsidian';
 import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 export interface YoinkResult {
   content: string;
   depth: number;
   linkedNotesCount: number;
+  primaryNoteName: string;
   wordCount: number;
 }
 
@@ -79,17 +81,47 @@ export class YoinkResultModal extends Modal {
     const title = 'Yoink Result';
     const subtitle = `Flattened ${this.result.linkedNotesCount} other note${this.result.linkedNotesCount !== 1 ? 's' : ''} (words: ${this.result.wordCount} | depth: ${this.result.depth})`;
 
+    // Add a Unicode font
+    doc.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
+    doc.setFont('Roboto');
+
+    // Set font size and add title
     doc.setFontSize(16);
     doc.text(title, 20, 20);
     
+    // Add subtitle
     doc.setFontSize(12);
     doc.text(subtitle, 20, 30);
 
-    doc.setFontSize(10);
-    const textLines = doc.splitTextToSize(this.result.content, 170);
-    doc.text(textLines, 20, 40);
+    // Prepare content
+    const lines = this.result.content.split('\n');
+    const content = lines.map(line => [line]);
 
-    doc.save('yoink_result.pdf');
+    // Add content using autoTable
+    (doc as any).autoTable({
+      startY: 40,
+      head: [],
+      body: content,
+      theme: 'plain',
+      styles: { font: 'Roboto', fontSize: 10, cellPadding: 1 },
+      columnStyles: { 0: { cellWidth: 170 } },
+      didDrawCell: (data: any) => {
+        if (data.section === 'body' && data.column.index === 0) {
+          const text = data.cell.raw;
+          if (text.startsWith('-') || text.startsWith('•')) {
+            doc.setFontSize(10);
+            doc.text('•', data.cell.x + 1, data.cell.y + 4);
+          }
+        }
+      },
+    });
+
+    // Generate filename
+    const date = new Date().toISOString().split('T')[0];  // Format: YYYY-MM-DD
+    const sanitizedNoteName = this.result.primaryNoteName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const filename = `yoink_flattened_${sanitizedNoteName}_${date}.pdf`;
+
+    doc.save(filename);
     new Notice('PDF downloaded');
   }
 

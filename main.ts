@@ -77,6 +77,7 @@ export default class YoinkPlugin extends Plugin {
           wordCount: wordCount,
           depth: this.settings.depth,
           linkedNotesCount: contextResult.linkedNotesCount,
+          primaryNoteName: markdownView.file ? markdownView.file.basename : 'null_file',
         };
         new YoinkResultModal(this.app, result).open();
       } catch (error) {
